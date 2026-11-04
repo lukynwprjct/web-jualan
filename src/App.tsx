@@ -25,31 +25,35 @@ function App() {
   const brandName = settings?.find(s => s.key === 'brand_name')?.value || 'Luxky'
   const logoUrl = settings?.find(s => s.key === 'logo_url')?.value || ''
   
+  // Hide navigation on admin pages
+  const hideNav = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
+  
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-background flex flex-col">
-        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <a href="/" className="flex items-center gap-2">
-              {logoUrl ? (
-                <img src={logoUrl} alt={brandName} className="h-10 w-10 object-contain" />
-              ) : null}
-              <span className="text-xl font-bold">{brandName}</span>
-            </a>
-            
-            <MainNav />
-            
-            <div className="flex items-center gap-4">
-              <AdminLink />
-              <a
-                href="https://wa.me/6285178965265"
-                className="hover:text-primary transition-colors"
-              >
-                <ShoppingBag className="h-6 w-6" />
+        {!hideNav && (
+          <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+              <a href="/" className="flex items-center gap-2">
+                {logoUrl ? (
+                  <img src={logoUrl} alt={brandName} className="h-10 w-10 object-contain" />
+                ) : null}
               </a>
+              
+              <MainNav />
+              
+              <div className="flex items-center gap-4">
+                <AdminLink />
+                <a
+                  href="https://wa.me/6285178965265"
+                  className="hover:text-primary transition-colors"
+                >
+                  <ShoppingBag className="h-6 w-6" />
+                </a>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
+        )}
 
         <main className="flex-grow">
           <Routes>
