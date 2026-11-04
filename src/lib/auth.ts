@@ -10,19 +10,6 @@ interface UserState {
   updateRole: (role: string) => void
 }
 
-// Get user from localStorage untuk development (bypass Supabase Auth yang bisa hang)
-function getStoredUser() {
-  try {
-    const stored = localStorage.getItem('luxky_admin_email')
-    if (stored) {
-      return { user: { email: stored }, isLoading: false }
-    }
-  } catch (e) {
-    console.error('Error reading localStorage:', e)
-  }
-  return { user: null, isLoading: false }
-}
-
 export const useAuthStore = create<UserState>((set) => ({
   user: null,
   isLoading: true,
@@ -34,42 +21,8 @@ export const useAuthStore = create<UserState>((set) => ({
     })
     
     if (error) {
-      // Development mode fallback - login tetap sukses jika email valid
-      if (email.includes('@') && password.length >= 6) {
-        localStorage.setItem('luxky_admin_email', email)
-        
-        // Sync session ke Supabase auth untuk RLS
-        const mockSession = {
-          access_token: `dev-${Date.now()}`,
-          refresh_token: `dev-refresh-${Date.now()}`,
-          expires_in: 3600,
-          expires_at: Math.floor(Date.now() / 1000) + 3600,
-          user: {
-            id: 'dev-user-id',
-            email,
-            aud: 'authenticated',
-            app_metadata: { provider: 'email' },
-            user_metadata: { email, role: 'STAFF' }
-          }
-        }
-        
-        supabase.auth.setSession(mockSession.access_token, mockSession.refresh_token)
-          .then(({ error }) => {
-            if (error) {
-              console.log('Sync auth session:', error.message)
-            } else {
-              console.log('✅ Auth session synced for RLS')
-            }
-          })
-        
-        set({ user: { email }, isLoading: false })
-        return { error: null, user: { email } }
-      }
       return { error, user: null }
     }
-    
-    // Simpan email ke localStorage untuk development
-    localStorage.setItem('luxky_admin_email', email)
     
     set({ user: data.user, isLoading: false })
     return { error: null, user: data.user }
@@ -90,16 +43,12 @@ export const useAuthStore = create<UserState>((set) => ({
       return { error, user: null }
     }
     
-    // Simpan email ke localStorage untuk development
-    localStorage.setItem('luxky_admin_email', email)
-    
     set({ user: data.user, isLoading: false })
     return { error: null, user: data.user }
   },
 
   logout: async () => {
     await supabase.auth.signOut()
-    localStorage.removeItem('luxky_admin_email')
     set({ user: null, isLoading: false })
   },
 
@@ -126,44 +75,27 @@ export const useAuthStore = create<UserState>((set) => ({
   }
 }))
 
-// Auto-fetch user from localStorage on mount (bypass Supabase)
+// Auto-fetch user from Supabase auth on mount (NO localStorage bypass)
 import { useEffect } from 'react'
 import { supabase } from './supabase'
+import { useAuthStore } from './auth'
 
 export function useAuth() {
   const { user, isLoading } = useAuthStore()
   
   useEffect(() => {
-    const { user, isLoading } = getStoredUser()
-    if (user) {
-      // Set user dari localStorage tanpa call Supabase
+    // Get user dari Supabase auth (bukan localStorage)
+    // Ini akan return null kalau belum login
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const { set } = useAuthStore.getState()
-      set({ user, isLoading })
-      
-      // Sync session ke Supabase auth untuk RLS
-      const mockSession = {
-        access_token: `mock-${Date.now()}`,
-        refresh_token: `mock-refresh-${Date.now()}`,
-        expires_in: 3600,
-        expires_at: Math.floor(Date.now() / 1000) + 3600,
-        user: {
-          id: 'local-user-id',
-          email: user.email,
-          aud: 'authenticated',
-          app_metadata: { provider: 'email' },
-          user_metadata: { email: user.email, role: 'STAFF' }
-        }
+      if (session?.user) {
+        set({ user: session.user, isLoading: false })
+      } else {
+        set({ user: null, isLoading: false })
       }
-      
-      supabase.auth.setSession(mockSession.access_token, mockSession.refresh_token)
-        .then(({ error }) => {
-          if (error) {
-            console.log('Sync auth session:', error.message)
-          } else {
-            console.log('✅ Auth session synced for RLS')
-          }
-        })
-    }
+    })
+    
+    return () => subscription.unsubscribe()
   }, [])
   
   return { user, isLoading }
