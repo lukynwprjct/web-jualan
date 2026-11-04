@@ -456,7 +456,7 @@
 
     // Supabase Configuration
     const supabaseUrl = 'https://retpbhcztvthymtluesu.supabase.co';
-    const supabaseKey = 'sb_secret_jTE77VDCzHtTP-bDUrn2rQ_k3THejPK';
+    const supabaseKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY || 'sb_secret_jTE77VDCzHtTP-bDUrn2rQ_k3THejPK';
 
     // Check if identity exists on page load
     document.addEventListener('DOMContentLoaded', () => {
