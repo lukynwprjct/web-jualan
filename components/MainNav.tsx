@@ -1,12 +1,12 @@
-import { usePathname } from "next/navigation";
-import Link from "next/link";
+import { useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 export function MainNav({
   className,
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
-  const pathname = usePathname();
+  const location = useLocation();
 
   const links = [
     { title: "Products", href: "/products" },
@@ -22,10 +22,10 @@ export function MainNav({
       {links.map((link) => (
         <Link
           key={link.href}
-          href={link.href}
+          to={link.href}
           className={cn(
             "text-sm font-medium transition-colors hover:text-primary",
-            pathname === link.href ? "text-foreground" : "text-foreground/60"
+            location.pathname === link.href ? "text-foreground" : "text-foreground/60"
           )}
         >
           {link.title}
