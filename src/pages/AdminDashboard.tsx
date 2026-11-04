@@ -24,6 +24,7 @@ interface Stats {
   pendingInquiries: number
   reservedProducts: number
   soldProducts: number
+  newCustomers: number
 }
 
 export default function AdminDashboard() {
@@ -46,6 +47,15 @@ export default function AdminDashboard() {
   async function fetchStats() {
     setIsLoading(true)
     
+    // Get latest customers (registered in last 24 hours)
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+    
+    const { data: newCustomers, error: customerError } = await supabase
+      .from('customers')
+      .select('count', { count: 'exact' })
+      .gte('created_at', yesterday.toISOString())
+
     // Parallel queries for better performance
     const [products, customers, inquiries] = await Promise.all([
       supabase.from('products').select('count', { count: 'exact' }),
@@ -75,6 +85,7 @@ export default function AdminDashboard() {
       pendingInquiries: pendingInquiries.count || 0,
       reservedProducts: reservedProducts.count || 0,
       soldProducts: soldProducts.count || 0,
+      newCustomers: newCustomers?.count || 0,
     })
     setIsLoading(false)
   }
@@ -141,6 +152,20 @@ export default function AdminDashboard() {
             icon={Users} 
             color="green" 
           />
+          {stats.newCustomers > 0 && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">New Today</CardTitle>
+                <Users className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-baseline gap-2">
+                  <div className="text-2xl font-bold">{stats.newCustomers}</div>
+                  <span className="text-xs text-green-600 font-medium">+{stats.newCustomers} today</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <StatCard 
             title="Total Inquiries" 
             value={stats.totalInquiries} 

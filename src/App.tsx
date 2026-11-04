@@ -15,6 +15,7 @@ import AdminBrandSettings from './pages/BrandSettings'
 import InquiryForm from './pages/InquiryForm'
 import About from './pages/About'
 import Contact from './pages/Contact'
+import Register from './pages/Register'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useBrandSettings } from './lib/brandSettings'
 
@@ -94,6 +95,7 @@ function App() {
             <Route path="/inquiry/:id" element={<InquiryForm />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/register" element={<Register />} />
           </Routes>
         </main>
 
