@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { supabase } from './supabase'
+import { useEffect } from 'react'
 
 interface UserState {
   user: any | null
@@ -76,10 +78,6 @@ export const useAuthStore = create<UserState>((set) => ({
 }))
 
 // Auto-fetch user from Supabase auth on mount (NO localStorage bypass)
-import { useEffect } from 'react'
-import { supabase } from './supabase'
-import { useAuthStore } from './auth'
-
 export function useAuth() {
   const { user, isLoading } = useAuthStore()
   
@@ -87,11 +85,10 @@ export function useAuth() {
     // Get user dari Supabase auth (bukan localStorage)
     // Ini akan return null kalau belum login
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const { set } = useAuthStore.getState()
       if (session?.user) {
-        set({ user: session.user, isLoading: false })
+        useAuthStore.getState().set({ user: session.user, isLoading: false })
       } else {
-        set({ user: null, isLoading: false })
+        useAuthStore.getState().set({ user: null, isLoading: false })
       }
     })
     
