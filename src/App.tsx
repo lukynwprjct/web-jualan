@@ -18,6 +18,7 @@ import Contact from './pages/Contact'
 import Register from './pages/Register'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useBrandSettings } from './lib/brandSettings'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 
 function App() {
   const { data: settings } = useBrandSettings()
@@ -149,6 +150,7 @@ function App() {
           </div>
         </footer>
       </div>
+      <SpeedInsights />
     </BrowserRouter>
   )
 }
