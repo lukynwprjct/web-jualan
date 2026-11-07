@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom'
-import { useAuthStore } from '@/lib/auth'
+import { useAuthStore, useAuth } from '@/lib/auth'
 import { Loader2 } from 'lucide-react'
 
 interface ProtectedRouteProps {
@@ -8,6 +8,7 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, isLoading } = useAuthStore()
+  const { } = useAuth() // trigger auth listener
 
   if (isLoading) {
     return (

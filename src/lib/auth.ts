@@ -77,23 +77,31 @@ export const useAuthStore = create<UserState>((set) => ({
   }
 }))
 
-// Auto-fetch user from Supabase auth on mount (NO localStorage bypass)
+// Auto-fetch user dari Supabase auth — panggil ini di root App
 export function useAuth() {
   const { user, isLoading } = useAuthStore()
-  
+
   useEffect(() => {
-    // Get user dari Supabase auth (bukan localStorage)
-    // Ini akan return null kalau belum login
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // 1. Langsung cek session aktif saat mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        useAuthStore.getState().set({ user: session.user, isLoading: false })
+        useAuthStore.setState({ user: session.user, isLoading: false })
       } else {
-        useAuthStore.getState().set({ user: null, isLoading: false })
+        useAuthStore.setState({ user: null, isLoading: false })
       }
     })
-    
+
+    // 2. Subscribe perubahan auth (login/logout/refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        useAuthStore.setState({ user: session.user, isLoading: false })
+      } else {
+        useAuthStore.setState({ user: null, isLoading: false })
+      }
+    })
+
     return () => subscription.unsubscribe()
   }, [])
-  
+
   return { user, isLoading }
 }

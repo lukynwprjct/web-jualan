@@ -17,11 +17,58 @@ export default function ProductGrid() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Mock data - akan diganti dari Supabase nanti
+  // Fetch dari Supabase
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        // TODO: Ganti dengan Supabase query
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('status', 'READY')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error("Error fetching products:", error);
+          // Fallback ke mock data jika error
+          const mockProducts: Product[] = [
+            {
+              id: "1",
+              name: "Premium Watch",
+              price: 5000000,
+              category: "Watches",
+              description: "Luxury timepiece with genuine leather strap",
+              image_url: "https://via.placeholder.com/400x400/1a1a1a/ffffff?text=Watch",
+              status: "READY",
+              created_at: new Date().toISOString()
+            },
+            {
+              id: "2",
+              name: "Designer Bag",
+              price: 8000000,
+              category: "Accessories",
+              description: "High-quality leather designer bag",
+              image_url: "https://via.placeholder.com/400x400/1a1a1a/ffffff?text=Bag",
+              status: "READY",
+              created_at: new Date().toISOString()
+            },
+            {
+              id: "3",
+              name: "Gold Chain",
+              price: 12000000,
+              category: "Jewelry",
+              description: "24K gold premium chain",
+              image_url: "https://via.placeholder.com/400x400/1a1a1a/ffffff?text=Chain",
+              status: "RESERVED",
+              created_at: new Date().toISOString()
+            }
+          ];
+          setProducts(mockProducts);
+        } else if (data) {
+          setProducts(data);
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        // Fallback ke mock data jika error
         const mockProducts: Product[] = [
           {
             id: "1",
@@ -55,8 +102,6 @@ export default function ProductGrid() {
           }
         ];
         setProducts(mockProducts);
-      } catch (error) {
-        console.error("Error fetching products:", error);
       } finally {
         setLoading(false);
       }
