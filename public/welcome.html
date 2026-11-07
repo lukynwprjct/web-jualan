@@ -499,7 +499,6 @@
         localStorage.setItem('luxky_location', location);
 
         // Save to Supabase
-        const { createClient } = supabase;
         const supabase = createClient(supabaseUrl, supabaseKey);
         
         const { data, error } = await supabase
