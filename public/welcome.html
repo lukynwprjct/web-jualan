@@ -513,7 +513,13 @@
 
         if (error) {
           console.error('Supabase error:', error);
-          errorMessage.textContent = 'Failed to save to database. Please try again.';
+          console.error('Error details:', JSON.stringify(error, null, 2));
+          console.error('Error code:', error.code);
+          console.error('Error message:', error.message);
+          console.error('Error details:', error.details);
+          console.error('Error hint:', error.hint);
+          
+          errorMessage.textContent = `DB Error: ${error.message} (code: ${error.code})`;
           errorMessage.classList.add('visible');
           continueButton.disabled = false;
           continueButton.style.opacity = '1';
@@ -527,8 +533,10 @@
         }, 800);
 
       } catch (error) {
-        console.error('Error saving identity:', error);
-        errorMessage.textContent = 'Failed to save identity. Please try again.';
+        console.error('Unexpected error:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        
+        errorMessage.textContent = `Error: ${error.message || 'Unknown error'}`;
         errorMessage.classList.add('visible');
         
         continueButton.disabled = false;
