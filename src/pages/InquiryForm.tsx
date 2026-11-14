@@ -107,100 +107,25 @@ export default function InquiryForm() {
       if (normalizedPhone.startsWith('08')) {
         normalizedPhone = '62' + normalizedPhone.slice(1)
       }
+      normalizedPhone = normalizedPhone.replace(/[^0-9]/g, '')
 
-      // Check or create customer
-      const { data: existingCustomer, error: fetchError } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('phone_normalized', normalizedPhone)
-        .single()
+      // Kirim inquiry via RPC aman (sekali panggil: customer + inquiry
+      // + stok + event bot ditangani di sisi database)
+      const { data, error } = await supabase.rpc('submit_inquiry', {
+        p_product_id: formData.product_id,
+        p_customer_name: formData.customer_name.trim(),
+        p_customer_whatsapp: normalizedPhone,
+        p_note: formData.inquiry_message || null,
+        p_quantity: 1
+      })
 
-      let customerId: string | undefined
-
-      if (existingCustomer) {
-        customerId = existingCustomer.id
-      } else {
-        const { data: newCustomer, error: insertError } = await supabase
-          .from('customers')
-          .insert([{
-            full_name: formData.customer_name,
-            whatsapp_display: formData.customer_phone,
-            whatsapp_normalized: normalizedPhone
-          }])
-          .select()
-          .single()
-
-        if (insertError && insertError.code !== '23505') {
-          throw insertError
-        }
-        customerId = newCustomer?.id
+      if (error) {
+        throw error
       }
 
-      // Create inquiry
-      const inquiryData = {
-        customer_id: customerId,
-        product_id: formData.product_id,
-        product_name: formData.product_name,
-        product_price: formData.product_price,
-        customer_name: formData.customer_name,
-        customer_whatsapp: normalizedPhone,
-        note: formData.inquiry_message,
-        status: 'PENDING',
-        admin_remarks: null
-      }
-
-      const { error: inquiryError } = await supabase
-        .from('inquiries')
-        .insert([inquiryData])
-
-      if (inquiryError) {
-        throw inquiryError
-      }
-
-      // Update product stock
-      const { error: stockError } = await supabase
-        .from('products')
-        .update({ stock: product?.stock ? product.stock - 1 : 0 })
-        .eq('id', formData.product_id)
-
-      if (stockError) {
-        console.error('Error updating stock:', stockError)
-      }
-
-      // Queue bot event
-      const { error: botError } = await supabase
-        .from('bot_events')
-        .insert([{
-          event_type: 'INQUIRY_CREATED',
-          customer_name: formData.customer_name,
-          customer_phone: normalizedPhone,
-          product_name: formData.product_name,
-          product_price: formData.product_price,
-          message: formData.inquiry_message,
-          status: 'PENDING'
-        }])
-
-      if (botError) {
-        console.error('Error queuing bot event:', botError)
-      }
-
-      // Save to admin logs
-      const { error: logError } = await supabase
-        .from('admin_logs')
-        .insert([{
-          action: 'INQUIRY_CREATED',
-          target_table: 'inquiries',
-          details: { 
-            product_name: formData.product_name,
-            customer_name: formData.customer_name,
-            customer_phone: normalizedPhone
-          },
-          ip_address: null,
-          user_agent: null
-        }])
-
-      if (logError) {
-        console.error('Error logging action:', logError)
+      if (data && data.ok === false) {
+        alert('Gagal mengirim inquiry: ' + (data.error || 'Coba lagi'))
+        return
       }
 
       alert('Inquiry berhasil dikirim! Kami akan menghubungi Anda via WhatsApp segera.')

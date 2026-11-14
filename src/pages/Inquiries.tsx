@@ -8,18 +8,18 @@ import { CheckCircle, XCircle, MessageSquare, Trash2, User, Phone, Send } from '
 
 interface Inquiry {
   id: string
-  customer_id: string
+  customer_id: string | null
   customer: {
-    name: string
-    phone_original: string
-    phone_normalized: string
-  }
-  product_id: string
-  product_name_snapshot: string
-  product_price_snapshot: number
-  message: string | null
-  status: 'PENDING' | 'REPLIED' | 'CANCELLED'
-  notes: string | null
+    full_name: string
+    whatsapp_display: string
+    whatsapp_normalized: string
+  } | null
+  product_id: string | null
+  product_name: string
+  product_price: number
+  note: string | null
+  status: 'PENDING' | 'REPLIED' | 'CANCELLED' | string
+  admin_remarks: string | null
   created_at: string
 }
 
@@ -39,7 +39,7 @@ export default function Inquiries() {
       .from('inquiries')
       .select(`
         *,
-        customer:customers(name, phone_original, phone_normalized)
+        customer:customers(full_name, whatsapp_display, whatsapp_normalized)
       `)
       .order('created_at', { ascending: false })
 
@@ -76,20 +76,20 @@ export default function Inquiries() {
   }
 
   const handleReplyWhatsApp = async (inquiry: Inquiry) => {
-    const customerPhone = inquiry.customer?.phone_normalized || inquiry.customer?.phone_original
+    const customerPhone = inquiry.customer?.whatsapp_normalized || inquiry.customer?.whatsapp_display
     if (!customerPhone) {
       alert('No customer phone number available')
       return
     }
 
-    const productName = encodeURIComponent(inquiry.product_name_snapshot)
-    const productPrice = encodeURIComponent(`Rp ${(inquiry.product_price_snapshot / 1000).toFixed(0)}K`)
-    const customerMessage = inquiry.message ? `\n\nCustomer Message:\n${inquiry.message}` : ''
+    const productPrice = encodeURIComponent(`Rp ${(inquiry.product_price / 1000).toFixed(0)}K`)
+    const customerMessage = inquiry.note ? `\n\nCustomer Message:\n${inquiry.note}` : ''
     const reply = replyMessage[inquiry.id] || ''
-    const fullMessage = `Halo ${inquiry.customer?.name},${customerMessage ? '' : ''}\n\nTerima kasih atas inquiry Anda untuk:\n*${inquiry.product_name_snapshot}*\nHarga: ${productPrice}${reply ? `\n\nReply:\n${reply}` : ''}\n\nSilakan balas chat ini untuk konfirmasi lebih lanjut.`
+    const fullMessage = `Halo ${inquiry.customer?.full_name},${customerMessage ? '' : ''}\n\nTerima kasih atas inquiry Anda untuk:\n*${inquiry.product_name}*\nHarga: ${productPrice}${reply ? `\n\nReply:\n${reply}` : ''}\n\nSilakan balas chat ini untuk konfirmasi lebih lanjut.`
 
-    const whatsappNumber = "6285178965265"
-    window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(fullMessage)}`, "_blank")
+    // Kirim ke nomor customer, bukan ke admin sendiri
+    const targetNumber = customerPhone.replace(/[^0-9]/g, '')
+    window.open(`https://wa.me/${targetNumber}?text=${encodeURIComponent(fullMessage)}`, "_blank")
     
     // Update status to REPLIED
     await handleUpdateStatus(inquiry.id, 'REPLIED')
@@ -141,10 +141,10 @@ export default function Inquiries() {
                       <User className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold">{inquiry.customer?.name}</h3>
+                      <h3 className="font-semibold">{inquiry.customer?.full_name || inquiry.customer_name}</h3>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Phone className="h-3 w-3" />
-                        {inquiry.customer?.phone_original}
+                        {inquiry.customer?.whatsapp_display || inquiry.customer_whatsapp}
                       </div>
                     </div>
                   </div>
@@ -165,9 +165,9 @@ export default function Inquiries() {
                     <span className="text-sm font-medium">Product Inquiry</span>
                   </div>
                   <div className="text-sm">
-                    <p className="font-semibold">{inquiry.product_name_snapshot}</p>
+                    <p className="font-semibold">{inquiry.product_name}</p>
                     <p className="text-primary font-bold mt-1">
-                      {formatCurrency(inquiry.product_price_snapshot)}
+                      {formatCurrency(inquiry.product_price)}
                     </p>
                   </div>
                 </div>
@@ -178,7 +178,7 @@ export default function Inquiries() {
                     Customer Message
                   </Label>
                   <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                    {inquiry.message || <span className="text-muted-foreground italic">No message</span>}
+                    {inquiry.note || <span className="text-muted-foreground italic">No message</span>}
                   </div>
                 </div>
 

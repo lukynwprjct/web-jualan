@@ -4,16 +4,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { supabase } from '@/lib/supabase'
-import { Plus, Edit, Trash2, X, User, Phone, Mail } from 'lucide-react'
+import { Plus, Edit, Trash2, X, User, Phone } from 'lucide-react'
 
 interface Customer {
   id: string
-  name: string
-  phone_original: string
-  phone_normalized: string
-  email: string | null
-  whatsapp_active: boolean
+  full_name: string
+  whatsapp_display: string
+  whatsapp_normalized: string
+  address: string | null
+  notes: string | null
   created_at: string
 }
 
@@ -22,13 +23,13 @@ export default function Customers() {
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
-  
+
   // Form state
   const [formData, setFormData] = useState({
-    name: '',
-    phone_original: '',
-    email: '',
-    whatsapp_active: true
+    full_name: '',
+    whatsapp_display: '',
+    address: '',
+    notes: ''
   })
 
   useEffect(() => {
@@ -55,31 +56,22 @@ export default function Customers() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleToggleWhatsApp = (id: string, currentStatus: boolean) => {
-    const newStatus = !currentStatus
-    supabase
-      .from('customers')
-      .update({ whatsapp_active: newStatus })
-      .eq('id', id)
-      .then(() => fetchCustomers())
-  }
-
   const handleOpenModal = (customer?: Customer) => {
     if (customer) {
       setEditingCustomer(customer)
       setFormData({
-        name: customer.name,
-        phone_original: customer.phone_original,
-        email: customer.email || '',
-        whatsapp_active: customer.whatsapp_active
+        full_name: customer.full_name,
+        whatsapp_display: customer.whatsapp_display,
+        address: customer.address || '',
+        notes: customer.notes || ''
       })
     } else {
       setEditingCustomer(null)
       setFormData({
-        name: '',
-        phone_original: '',
-        email: '',
-        whatsapp_active: true
+        full_name: '',
+        whatsapp_display: '',
+        address: '',
+        notes: ''
       })
     }
     setIsModalOpen(true)
@@ -87,15 +79,19 @@ export default function Customers() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
+    // Normalisasi nomor WA Indonesia: 08xx -> 628xx
+    let normalized = formData.whatsapp_display.replace(/[^0-9]/g, '')
+    if (normalized.startsWith('08')) {
+      normalized = '62' + normalized.slice(1)
+    }
+
     const customerData = {
-      name: formData.name,
-      phone_original: formData.phone_original,
-      phone_normalized: formData.phone_original.startsWith('08') 
-        ? '62' + formData.phone_original.slice(1)
-        : formData.phone_original,
-      email: formData.email || null,
-      whatsapp_active: formData.whatsapp_active
+      full_name: formData.full_name,
+      whatsapp_display: formData.whatsapp_display,
+      whatsapp_normalized: normalized,
+      address: formData.address || null,
+      notes: formData.notes || null
     }
 
     if (editingCustomer) {
@@ -165,32 +161,27 @@ export default function Customers() {
                       <User className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">{customer.name}</h3>
+                      <h3 className="font-semibold text-lg">{customer.full_name}</h3>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                         <Phone className="h-3 w-3" />
-                        {customer.phone_original}
+                        {customer.whatsapp_display}
                       </div>
-                      {customer.email && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                          <Mail className="h-3 w-3" />
-                          {customer.email}
+                      {customer.address && (
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {customer.address}
                         </div>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge 
-                      className={`${
-                        customer.whatsapp_active ? 'bg-green-500' : 'bg-gray-500'
-                      }`}
-                    >
-                      {customer.whatsapp_active ? 'WhatsApp Active' : 'WhatsApp Disabled'}
+                    <Badge variant="outline" className="bg-green-100/20 text-green-600 border-green-200">
+                      {customer.whatsapp_normalized}
                     </Badge>
                     <Button variant="outline" size="sm" onClick={() => handleOpenModal(customer)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      variant="destructive" 
+                    <Button
+                      variant="destructive"
                       size="sm"
                       onClick={() => handleDelete(customer.id)}
                     >
@@ -202,16 +193,9 @@ export default function Customers() {
                   <span className="text-xs text-muted-foreground">
                     Joined: {new Date(customer.created_at).toLocaleDateString('id-ID')}
                   </span>
-                  <button
-                    onClick={() => handleToggleWhatsApp(customer.id, customer.whatsapp_active)}
-                    className={`text-xs px-3 py-1 rounded-full ${
-                      customer.whatsapp_active 
-                        ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
-                        : 'bg-green-100 text-green-800 hover:bg-green-200'
-                    }`}
-                  >
-                    {customer.whatsapp_active ? 'Disable WhatsApp' : 'Enable WhatsApp'}
-                  </button>
+                  {customer.notes && (
+                    <span className="text-xs text-muted-foreground italic">{customer.notes}</span>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -232,47 +216,45 @@ export default function Customers() {
             <form onSubmit={handleSubmit}>
               <div className="p-4 space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Customer Name</Label>
+                  <Label htmlFor="full_name">Customer Name</Label>
                   <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
+                    id="full_name"
+                    name="full_name"
+                    value={formData.full_name}
                     onChange={handleInputChange}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone_original">WhatsApp Number</Label>
+                  <Label htmlFor="whatsapp_display">WhatsApp Number</Label>
                   <Input
-                    id="phone_original"
-                    name="phone_original"
-                    value={formData.phone_original}
+                    id="whatsapp_display"
+                    name="whatsapp_display"
+                    value={formData.whatsapp_display}
                     onChange={handleInputChange}
                     placeholder="0812-3456-7890"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email (Optional)</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
+                  <Label htmlFor="address">Address (Optional)</Label>
+                  <Textarea
+                    id="address"
+                    name="address"
+                    value={formData.address}
                     onChange={handleInputChange}
-                    placeholder="email@example.com"
+                    placeholder="Alamat customer"
                   />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="whatsapp_active"
-                    name="whatsapp_active"
-                    checked={formData.whatsapp_active}
-                    onChange={(e) => setFormData(prev => ({ ...prev, whatsapp_active: e.target.checked }))}
-                    className="rounded"
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes (Optional)</Label>
+                  <Textarea
+                    id="notes"
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleInputChange}
+                    placeholder="Catatan tentang customer"
                   />
-                  <Label htmlFor="whatsapp_active">WhatsApp Active</Label>
                 </div>
               </div>
               <div className="flex justify-end gap-2 p-4 border-t">
