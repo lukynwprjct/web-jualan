@@ -12,6 +12,7 @@ import AdminCategories from './pages/Categories'
 import AdminCustomers from './pages/Customers'
 import AdminInquiries from './pages/Inquiries'
 import AdminBrandSettings from './pages/BrandSettings'
+import AdminBotSettings from './pages/BotSettings'
 import InquiryForm from './pages/InquiryForm'
 import About from './pages/About'
 import Contact from './pages/Contact'
@@ -95,6 +96,11 @@ function App() {
             <Route path="/admin/brand-settings" element={
               <ProtectedRoute>
                 <AdminBrandSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/bot-settings" element={
+              <ProtectedRoute>
+                <AdminBotSettings />
               </ProtectedRoute>
             } />
             <Route path="/inquiry/:id" element={<InquiryForm />} />

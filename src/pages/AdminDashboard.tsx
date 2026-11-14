@@ -10,7 +10,8 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  Grid3X3
+  Grid3X3,
+  Bot
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth'
 import { useNavigate } from 'react-router-dom'
@@ -235,10 +236,15 @@ export default function AdminDashboard() {
                 <div className="text-sm text-foreground/60">Store settings and brand info</div>
               </div>
             </Button>
+            <Button variant="outline" className="h-auto py-8" onClick={() => navigate('/admin/bot-settings')}>
+              <Bot className="h-8 w-8 mb-2" />
+              <div className="text-left">
+                <div className="font-semibold">Bot Settings</div>
+                <div className="text-sm text-foreground/60">Atur chatbot AI & diskon</div>
+              </div>
+            </Button>
           </div>
         </div>
-
-        {/* Recent Activity */}
         <div>
           <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
           <div className="space-y-3">
