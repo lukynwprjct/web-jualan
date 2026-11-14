@@ -23,3 +23,22 @@ echo "📋 Daftar function yang terdaftar:"
 curl -sS "https://api.supabase.com/v1/projects/${PROJECT_REF}/functions" \
   -H "Authorization: Bearer ${TOKEN}"
 echo ""
+
+# ---------- Set GEMINI_MODEL ----------
+echo ""
+echo "🔐 Set secret GEMINI_MODEL=gemini-3.5-flash ..."
+curl -sS -X POST "https://api.supabase.com/v1/projects/${PROJECT_REF}/secrets" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '[{"name":"GEMINI_MODEL","value":"gemini-3.5-flash"}]'
+echo ""
+
+# ---------- Test ----------
+echo ""
+echo "🧪 Test bot (10 detik tunggu) ..."
+sleep 10
+curl -sS -X POST "https://${PROJECT_REF}.supabase.co/functions/v1/web-chat" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sb_publishable_ncEocS-7CbRQpX8mhQac-g_NJWEoy43" \
+  -d '{"visitorId":"v-test-final","message":"halo, ada produk apa aja?"}'
+echo ""

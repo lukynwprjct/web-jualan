@@ -10,8 +10,11 @@
 // @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent";
+const GEMINI_BASE =
+  "https://generativelanguage.googleapis.com/v1beta/models";
+// Model bisa diganti via secret GEMINI_MODEL (tanpa deploy ulang).
+// Default: gemini-3.5-flash
+const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.5-flash";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -185,7 +188,7 @@ ${catalog}`;
     // ===== 7. Panggil Gemini =====
     let reply: string | null = null;
     try {
-      const res = await fetch(GEMINI_URL, {
+      const res = await fetch(`${GEMINI_BASE}/${GEMINI_MODEL}:generateContent`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
