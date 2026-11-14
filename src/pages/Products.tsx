@@ -59,35 +59,6 @@ export default function Products() {
   }, [])
 
   useEffect(() => {
-    // Development mode: auto-add user jika belum ada
-    async function setupUser() {
-      const email = localStorage.getItem('luxky_admin_email')
-      if (!email) return
-      
-      // Check if user exists
-      const { data, error } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle()
-      
-      if (!data && !error) {
-        // Auto-create user untuk development
-        const { error: insertError } = await supabase
-          .from('admin_users')
-          .insert({
-            email,
-            full_name: email.split('@')[0],
-            role: 'SUPERADMIN'
-          })
-        
-        if (!insertError) {
-          console.log('Auto-created admin user:', email)
-        }
-      }
-    }
-    
-    setupUser()
     fetchProducts()
   }, [])
 
