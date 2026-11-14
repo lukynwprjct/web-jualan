@@ -16,6 +16,7 @@ import InquiryForm from './pages/InquiryForm'
 import About from './pages/About'
 import Contact from './pages/Contact'
 import Register from './pages/Register'
+import ChatBot from './components/ChatBot'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useBrandSettings } from './lib/brandSettings'
 
@@ -102,6 +103,9 @@ function App() {
             <Route path="/register" element={<Register />} />
           </Routes>
         </main>
+
+        {/* Chatbot AI - melayang di semua halaman publik */}
+        {!hideNav && <ChatBot />}
 
         <footer className="border-t border-border/40 bg-background">
           <div className="container mx-auto px-4 py-8">
