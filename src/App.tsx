@@ -18,6 +18,7 @@ import About from './pages/About'
 import Contact from './pages/Contact'
 import Register from './pages/Register'
 import ChatBot from './components/ChatBot'
+import StoreGate from './pages/StoreGate'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useBrandSettings } from './lib/brandSettings'
 
@@ -29,10 +30,22 @@ function App() {
   
   // Hide navigation on admin pages
   const hideNav = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
+
+  // ===== GERBANG TOKO =====
+  // Pengunjung publik yang belum kenalan (belum ada data di localStorage)
+  // diarahkan ke halaman StoreGate dulu. Admin & yang sudah pernah isi = lewat.
+  const isPublicPath = !hideNav
+  const hasVisitorData = typeof window !== 'undefined' && !!localStorage.getItem('luxky_visitor')
+  const isAdminPath = hideNav
+  const showGate = isPublicPath && !hasVisitorData &&
+    !['/about', '/contact'].includes(window.location.pathname)
   
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-background flex flex-col">
+      {/* Gerbang: pengunjung baru wajib kenalan dulu */}
+      {showGate && <StoreGate />}
+      {/* Konten utama tetap dirender di belakang (gerbang menutupi tampilan) */}
+      <div className="min-h-screen bg-background flex flex-col" style={showGate ? { display: 'none' } : undefined}>
         {!hideNav && (
           <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto px-4 h-16 flex items-center justify-between">
