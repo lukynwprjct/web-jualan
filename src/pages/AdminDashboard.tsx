@@ -11,7 +11,8 @@ import {
   AlertCircle,
   Clock,
   Grid3X3,
-  Bot
+  Bot,
+  MapPin
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth'
 import { useNavigate } from 'react-router-dom'
@@ -28,6 +29,11 @@ interface Stats {
   newCustomers: number
 }
 
+interface LokasiCount {
+  lokasi: string
+  jumlah: number
+}
+
 export default function AdminDashboard() {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
@@ -38,12 +44,37 @@ export default function AdminDashboard() {
     pendingInquiries: 0,
     reservedProducts: 0,
     soldProducts: 0,
+    newCustomers: 0,
   })
+  const [lokasiStats, setLokasiStats] = useState<LokasiCount[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     fetchStats()
+    fetchLokasiStats()
   }, [])
+
+  // ✅ UPGRADE: statistik pengunjung per kota (dari gerbang toko)
+  async function fetchLokasiStats() {
+    const { data } = await supabase
+      .from('user_identities')
+      .select('lokasi')
+
+    if (data) {
+      // Hitung per kota (normalisasi: kapital di awal, urut terbanyak)
+      const count: Record<string, number> = {}
+      for (const row of data) {
+        const kota = (row.lokasi || 'tidak diketahui').trim()
+        const key = kota.charAt(0).toUpperCase() + kota.slice(1).toLowerCase()
+        count[key] = (count[key] || 0) + 1
+      }
+      const sorted = Object.entries(count)
+        .map(([lokasi, jumlah]) => ({ lokasi, jumlah }))
+        .sort((a, b) => b.jumlah - a.jumlah)
+        .slice(0, 5)
+      setLokasiStats(sorted)
+    }
+  }
 
   async function fetchStats() {
     setIsLoading(true)
@@ -192,6 +223,36 @@ export default function AdminDashboard() {
             color="teal" 
           />
         </div>
+
+        {/* Statistik Pengunjung per Kota (dari gerbang toko) */}
+        {lokasiStats.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" /> Pengunjung per Kota
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {lokasiStats.map(({ lokasi, jumlah }) => {
+                const total = lokasiStats.reduce((sum, l) => sum + l.jumlah, 0)
+                const persen = total ? Math.round((jumlah / total) * 100) : 0
+                return (
+                  <Card key={lokasi} className="border-border/40">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold">{jumlah}</div>
+                      <div className="text-sm font-medium">{lokasi}</div>
+                      <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-[#5C0715] to-[#D7263D]"
+                          style={{ width: `${persen}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">{persen}% dari total</div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="mb-8">
