@@ -31,6 +31,8 @@ export default function Products() {
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
   
   // Form state
   const [formData, setFormData] = useState({
@@ -42,6 +44,49 @@ export default function Products() {
     status: 'READY',
     stock: '0'
   })
+
+  // ✅ UPLOAD FOTO LANGSUNG (metode 1) — ke Supabase Storage bucket 'product-images'
+  // Link otomatis terisi ke image_url. Metode 2 (paste link) tetap tersedia.
+  async function handleUploadFoto(file: File) {
+    setUploadError('')
+    if (!file) return
+    // Validasi: cuma gambar, maks 5 MB
+    if (!file.type.startsWith('image/')) {
+      setUploadError('File harus gambar (jpg/png/webp)')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Ukuran foto maksimal 5 MB')
+      return
+    }
+    setUploading(true)
+    try {
+      // Nama file unik: timestamp + nama bersih
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+      const cleanName = formData.name
+        ? formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)
+        : 'produk'
+      const fileName = `${cleanName}-${Date.now()}.${ext}`
+
+      const { error: uploadErr } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, file, { contentType: file.type, upsert: false })
+
+      if (uploadErr) throw uploadErr
+
+      // Dapatkan URL publik
+      const { data } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(fileName)
+
+      setFormData(prev => ({ ...prev, image_url: data.publicUrl }))
+    } catch (e: any) {
+      console.error('Upload error:', e)
+      setUploadError('Gagal upload: ' + e.message)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   // Fetch categories for dropdown
   useEffect(() => {
@@ -327,15 +372,70 @@ export default function Products() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="image_url">Image URL</Label>
+                  <Label htmlFor="image_url">Foto Produk</Label>
+
+                  {/* Preview foto (kalau sudah ada link) */}
+                  {formData.image_url && (
+                    <div className="mb-2 flex items-center gap-3">
+                      <img
+                        src={formData.image_url}
+                        alt="Preview foto produk"
+                        className="h-20 w-20 rounded-lg object-cover border border-border"
+                        onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.3' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
+                        className="text-xs text-destructive hover:underline"
+                      >
+                        Hapus foto
+                      </button>
+                    </div>
+                  )}
+
+                  {/* METODE 1: upload langsung dari galeri/kamera */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <label className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) handleUploadFoto(file)
+                          e.target.value = '' // biar bisa pilih file yang sama lagi
+                        }}
+                        disabled={uploading}
+                      />
+                      <span className={`inline-flex items-center justify-center gap-2 w-full h-9 px-3 rounded-md border border-input text-sm cursor-pointer ${
+                        uploading ? 'opacity-50' : 'hover:bg-accent'
+                      }`}>
+                        {uploading ? (
+                          <>
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                            Mengunggah...
+                          </>
+                        ) : (
+                          <>📷 Pilih Foto dari Galeri</>
+                        )}
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* METODE 2: paste link */}
                   <Input
                     id="image_url"
                     name="image_url"
                     value={formData.image_url}
                     onChange={handleInputChange}
-                    placeholder="https://example.com/image.jpg"
-                    required
+                    placeholder="atau tempel link foto di sini (https://...)"
                   />
+                  {uploadError && (
+                    <p className="text-xs text-destructive mt-1">{uploadError}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Upload langsung ATAU tempel link — pilih yang gampang. Foto tersimpan di Supabase-mu.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="category_id">Category</Label>
