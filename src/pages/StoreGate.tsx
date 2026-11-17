@@ -59,6 +59,9 @@ export default function StoreGate() {
         since: new Date().toISOString()
       }))
 
+      // ✅ FIX: navigate tetap dilakukan — AppShell sekarang reaktif terhadap
+      // useLocation(), sehingga gerbang otomatis menghilang tanpa refresh
+      // (localStorage 'luxky_visitor' terbaca ulang saat re-render).
       navigate('/', { replace: true })
     } catch (e: any) {
       console.error('StoreGate error:', e)

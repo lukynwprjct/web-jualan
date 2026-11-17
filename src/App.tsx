@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { MainNav } from './components/MainNav'
 import { AdminLink } from './components/AdminLink'
 import { ShoppingBag } from 'lucide-react'
@@ -29,30 +29,48 @@ import { useBrandSettings } from './lib/brandSettings'
 startAuthListener()
 
 function App() {
+  return (
+    <BrowserRouter>
+      <AppShell />
+    </BrowserRouter>
+  )
+}
+
+/**
+ * ✅ FIX "login awal loading terus / perlu refresh":
+ * AppShell berada DI DALAM BrowserRouter sehingga bisa pakai useLocation().
+ * showGate & hideNav sekarang reaktif terhadap pindah halaman.
+ *
+ * Dulu: showGate dihitung sekali dari window.location saat render pertama.
+ * Setelah StoreGate submit + navigate('/'), App tidak re-render (localStorage
+ * bukan state React) -> gerbang tetap menutupi layar -> pengunjung harus
+ * refresh manual. Persis gejala yang dilaporkan.
+ */
+function AppShell() {
+  const location = useLocation()
   const { data: settings } = useBrandSettings()
-  
+
   const brandName = settings?.find(s => s.key === 'brand_name')?.value || 'Luxky'
   const logoUrl = settings?.find(s => s.key === 'logo_url')?.value || ''
-  
-  // Hide navigation on admin pages
-  const hideNav = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
+  const pathname = location.pathname
+
+  // Hide navigation on admin pages (reaktif: berubah tiap pindah halaman)
+  const hideNav = pathname.startsWith('/admin')
 
   // ===== GERBANG TOKO =====
   // Pengunjung publik yang belum kenalan (belum ada data di localStorage)
   // diarahkan ke halaman StoreGate dulu. Admin & yang sudah pernah isi = lewat.
-  const isPublicPath = !hideNav
-  const hasVisitorData = typeof window !== 'undefined' && !!localStorage.getItem('luxky_visitor')
-  const isAdminPath = hideNav
-  const showGate = isPublicPath && !hasVisitorData &&
-    !['/about', '/contact'].includes(window.location.pathname)
-  
+  const showGate = !hideNav &&
+    !['/about', '/contact'].includes(pathname) &&
+    !localStorage.getItem('luxky_visitor')
+
   return (
-    <BrowserRouter>
-      {/* Gerbang: pengunjung baru wajib kenalan dulu */}
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* ✅ Gerbang: pengunjung baru wajib kenalan dulu.
+          Reaktif — otomatis hilang setelah StoreGate submit karena
+          AppShell re-render saat lokasi berubah (tidak perlu refresh). */}
       {showGate && <StoreGate />}
-      {/* Konten utama tetap dirender di belakang (gerbang menutupi tampilan) */}
-      <div className="min-h-screen bg-background flex flex-col" style={showGate ? { display: 'none' } : undefined}>
-        {!hideNav && (
+      {!hideNav && (
           <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto px-4 h-16 flex items-center justify-between">
               <a href="/" className="flex items-center gap-2">
@@ -178,7 +196,6 @@ function App() {
           </div>
         </footer>
       </div>
-    </BrowserRouter>
   )
 }
 
