@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { useAuthStore } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
 import BlackHoleBackground from '@/components/BlackHoleBackground'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
@@ -32,14 +31,20 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      const { error } = await login(email, password)
-      
+      const { error, user } = await login(email, password)
+
       if (error) {
         setError(error.message || 'Login failed')
         return
       }
-      
-      navigate('/admin/dashboard')
+
+      // ✅ FIX: hanya navigate jika user benar-benar ada di store.
+      // (login() kini menunggu session tersinkron dulu, jadi ini hampir selalu true)
+      if (user) {
+        navigate('/admin/dashboard', { replace: true })
+      } else {
+        setError('Login berhasil tapi sesi belum siap. Coba lagi.')
+      }
     } catch (err) {
       setError('An error occurred during login')
     } finally {

@@ -20,7 +20,13 @@ import Register from './pages/Register'
 import ChatBot from './components/ChatBot'
 import StoreGate from './pages/StoreGate'
 import ProtectedRoute from './components/ProtectedRoute'
+import { startAuthListener } from './lib/auth'
 import { useBrandSettings } from './lib/brandSettings'
+
+// ✅ FIX: pasang listener auth SEKALI di level root (modul), sebelum React render.
+// Sebelumnya listener hanya hidup saat ProtectedRoute mount -> race dengan
+// INITIAL_SESSION setelah login (loading terus / perlu refresh manual).
+startAuthListener()
 
 function App() {
   const { data: settings } = useBrandSettings()

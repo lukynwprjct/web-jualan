@@ -8,7 +8,11 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, isLoading } = useAuthStore()
-  const { } = useAuth() // trigger auth listener
+  // ✅ FIX: listener auth sekarang global (startAuthListener), aman dipanggil di sini
+  // tanpa efek samping subscribe berulang. Sebelumnya hook ini memasang listener baru
+  // setiap ProtectedRoute mount -> event INITIAL_SESSION datang terlambat dan
+  // bisa menimpa user yang baru login (race -> loading terus / balik ke login).
+  useAuth()
 
   if (isLoading) {
     return (
